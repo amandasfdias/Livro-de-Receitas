@@ -1,0 +1,7 @@
+{
+  "name": "Cuore | Livro de Receitas",
+  "description": "Suas receitas em um só lugar",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
