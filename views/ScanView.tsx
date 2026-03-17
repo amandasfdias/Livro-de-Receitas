@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { ArrowLeft, Camera, ImagePlus } from 'lucide-react';
+import { Camera, ImagePlus, X } from 'lucide-react';
 
 interface ScanViewProps {
   onBack: () => void;
@@ -7,7 +7,8 @@ interface ScanViewProps {
 }
 
 export const ScanView: React.FC<ScanViewProps> = ({ onBack, onImageCaptured }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -18,54 +19,65 @@ export const ScanView: React.FC<ScanViewProps> = ({ onBack, onImageCaptured }) =
       };
       reader.readAsDataURL(file);
     }
+    // Reset inputs so the same file can be selected again
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+    if (galleryInputRef.current) galleryInputRef.current.value = '';
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] animate-in fade-in duration-500">
-      <header className="pt-12 pb-8 px-6 text-center relative sticky top-0 bg-white dark:bg-[#0a0a0a] z-10">
-        <button onClick={onBack} className="absolute left-6 top-1/2 -translate-y-1/2 p-2 -ml-2 text-black dark:text-white active:scale-90 transition-transform">
-          <ArrowLeft size={22} />
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center px-3">
+      {/* Container Principal */}
+      <div className="bg-white dark:bg-[#1e1e1e] w-full max-w-[360px] min-h-[480px] p-6 relative animate-in zoom-in-95 duration-300 rounded-lg overflow-hidden border border-gray-100 dark:border-white/10 shadow-2xl flex flex-col justify-center">
+        
+        {/* Botão Fechar */}
+        <button 
+          onClick={onBack}
+          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-black dark:hover:text-white transition-colors bg-gray-50 dark:bg-white/5 rounded-full"
+        >
+          <X size={20} />
         </button>
-        <h2 className="font-amatic font-bold text-[30px] uppercase tracking-tight text-black dark:text-white leading-none">
-          Digitalizar
-        </h2>
-      </header>
 
-      <main className="px-8 space-y-10 pb-32">
-        <p className="text-[16px] text-gray-500 font-sans leading-relaxed text-center">
-          Tire uma foto ou selecione uma imagem de uma receita para digitalizá-la automaticamente.
-        </p>
+        {/* Ícone Superior */}
+        <div className="flex justify-center mb-4 mt-2">
+          <Camera size={32} className="text-brand-secondary" strokeWidth={1.5} />
+        </div>
 
-        <div className="space-y-4">
+        {/* Título e Descrição */}
+        <div className="text-center mb-6">
+          <h2 className="font-amatic text-[30px] font-bold uppercase tracking-tight text-black leading-none mb-6">
+            Digitalizar Foto
+          </h2>
+          <p className="text-[13px] text-gray-500 font-sans leading-relaxed px-2">
+            Tire uma foto da sua receita ou selecione uma imagem da galeria para digitalizá-la automaticamente
+          </p>
+        </div>
+
+        <div className="space-y-3">
           <button 
-            onClick={() => { fileInputRef.current?.setAttribute('capture', 'environment'); fileInputRef.current?.click(); }}
-            className="w-full bg-black dark:bg-white text-white dark:text-black py-5 flex items-center justify-center gap-3 rounded-[12px] active:scale-95 transition-all"
+            onClick={() => cameraInputRef.current?.click()}
+            className="w-full bg-black dark:bg-white text-white dark:text-black py-3 flex items-center justify-center gap-3 rounded-lg active:scale-95 transition-all shadow-md"
           >
             <Camera size={20} />
-            <span className="font-sans font-bold text-[16px]">Tirar Foto</span>
+            <span className="font-mooli text-[13px]">Tirar Foto</span>
           </button>
 
           <button 
-            onClick={() => { fileInputRef.current?.removeAttribute('capture'); fileInputRef.current?.click(); }}
-            className="w-full bg-white dark:bg-[#1e1e1e] text-black dark:text-white py-5 flex items-center justify-center gap-3 rounded-[12px] border border-gray-200 dark:border-white/10 active:scale-95 transition-all"
+            onClick={() => galleryInputRef.current?.click()}
+            className="w-full bg-white dark:bg-[#1e1e1e] text-black dark:text-white py-3 flex items-center justify-center gap-3 rounded-lg border-2 border-black dark:border-white/20 active:scale-95 transition-all shadow-sm"
           >
             <ImagePlus size={20} />
-            <span className="font-sans font-bold text-[16px]">Escolher da Galeria</span>
+            <span className="font-mooli text-[13px]">Escolher da Galeria</span>
           </button>
         </div>
 
-        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
-
-        <div className="bg-[#f7f7f7] dark:bg-white/5 p-10 rounded-[20px] text-center space-y-4 border border-gray-100 dark:border-white/5">
-          <div className="flex justify-center">
-            <div className="w-16 h-16 bg-white/50 dark:bg-white/10 rounded-full flex items-center justify-center border border-gray-100 dark:border-white/5">
-              <Camera size={28} className="text-gray-400" strokeWidth={1.5} />
-            </div>
-          </div>
-          <h3 className="font-amatic text-[28px] font-bold uppercase tracking-widest text-gray-600 dark:text-gray-300">Como funciona?</h3>
-          <p className="text-[14px] text-gray-500 font-sans leading-relaxed">Nossa IA irá analisar a imagem e extrair automaticamente os ingredientes e o modo de preparo.</p>
+        <div className="mt-8 mb-2 bg-[#f7f7f7] dark:bg-white/5 p-3 rounded-lg text-center border border-gray-100 dark:border-white/5">
+          <h3 className="font-amatic text-[20px] font-bold uppercase tracking-widest text-gray-600 dark:text-gray-300 mb-0.5">Como funciona?</h3>
+          <p className="text-[11px] text-gray-500 font-sans leading-snug">Nossa IA irá analisar a imagem e extrair automaticamente os ingredientes e o modo de preparo.</p>
         </div>
-      </main>
+
+        <input type="file" ref={cameraInputRef} onChange={handleFileChange} accept="image/*" capture="environment" className="hidden" />
+        <input type="file" ref={galleryInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+      </div>
     </div>
   );
 };

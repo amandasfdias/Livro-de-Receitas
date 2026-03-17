@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@400;700&family=Mooli&family=Dancing+Script:wght@700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@400;700&family=Mooli&family=Dancing+Script:wght@700&family=Playfair+Display:wght@700&family=Figtree:wght@400;500;600;700&family=Rubik:wght@400;500;600;700&family=Single+Day&family=Patrick+Hand&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
         darkMode: 'class',
@@ -22,7 +22,7 @@
                 bg: '#f7f7f7',
                 primary: '#000000',
                 accent: '#000000', 
-                secondary: 'var(--brand-secondary, #000000)',
+                secondary: 'var(--brand-secondary, #bd715d)',
               }
             },
             fontFamily: {
@@ -31,6 +31,10 @@
               cursive: ['Dancing Script', 'cursive'],
               serif: ['Playfair Display', 'serif'],
               mooli: ['Mooli', 'sans-serif'],
+              figtree: ['Figtree', 'sans-serif'],
+              rubik: ['Rubik', 'sans-serif'],
+              singleday: ['Single Day', 'cursive'],
+              patrick: ['Patrick Hand', 'cursive'],
             },
             borderRadius: {
               'md': '0.5rem',
@@ -49,7 +53,7 @@
         --foreground: #000000;
         --secondary: #666666;
         --accent: #f7f7f7;
-        --brand-secondary: #000000;
+        --brand-secondary: #bd715d;
       }
 
       body { 
@@ -78,6 +82,16 @@
       .text-brand-secondary { color: var(--brand-secondary); }
       .bg-brand-secondary { background-color: var(--brand-secondary); }
       .border-brand-secondary { border-color: var(--brand-secondary); }
+
+      button[data-radix-collection-item] {
+        transition: transform 0.15s ease-in-out;
+      }
+      button[data-radix-collection-item]:active,
+      button[data-radix-collection-item][data-state="active"],
+      button[data-radix-collection-item][data-highlighted],
+      button[data-radix-collection-item][aria-selected="true"] {
+        transform: scale(1.02);
+      }
     </style>
   <script type="importmap">
 {
@@ -95,8 +109,10 @@
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
   <body>
     <div id="root"></div>
-  </body>
+  <script type="module" src="/index.tsx"></script>
+</body>
 </html>

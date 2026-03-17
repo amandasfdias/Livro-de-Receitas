@@ -1,4 +1,9 @@
 
+export interface CustomCategory {
+  id: string;
+  label: string;
+}
+
 export interface Recipe {
   id: string;
   title: string;
@@ -13,7 +18,7 @@ export interface Recipe {
   isFavorite?: boolean;
 }
 
-export type ViewState = 'landing' | 'auth' | 'home' | 'book' | 'converter' | 'account' | 'account-details' | 'recipe-detail' | 'add-manual' | 'edit-manual' | 'scan' | 'scan-preview' | 'add-url' | 'appearance' | 'preview-url' | 'settings';
+export type ViewState = 'landing' | 'auth' | 'auth-email' | 'home' | 'book' | 'converter' | 'account' | 'account-details' | 'recipe-detail' | 'add-manual' | 'edit-manual' | 'scan' | 'scan-preview' | 'add-url' | 'appearance' | 'preview-url' | 'settings';
 
 export enum AddMethod {
   URL = 'URL',

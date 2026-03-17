@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { House, ClipboardList, Plus, Scale, User, Loader2, Sparkles } from 'lucide-react';
-import { ViewState, Recipe } from './types.ts';
+import { House, ClipboardList, Plus, Scale, User, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { ViewState, Recipe, CustomCategory } from './types.ts';
 import { TabButton } from './components/TabButton.tsx';
 import { AddRecipeModal } from './components/AddRecipeModal.tsx';
 import { HomeView } from './views/HomeView.tsx';
@@ -16,7 +17,10 @@ import { SettingsView } from './views/SettingsView.tsx';
 import { AddUrlView } from './views/AddUrlView.tsx';
 import { ScanView } from './views/ScanView.tsx';
 import { ScanPreviewView } from './views/ScanPreviewView.tsx';
-import { supabase, fetchUserRecipes, updateFavoriteStatus, getUserProfile, saveRecipe, updateUserProfile } from './services/supabaseService.ts';
+import { AuthView } from './views/AuthView.tsx';
+import { Logo } from './components/Logo.tsx';
+import { DoodleLogo } from './components/DoodleLogo.tsx';
+import { supabase, fetchUserRecipes, updateFavoriteStatus, getUserProfile, saveRecipe, updateUserProfile, signInWithGoogle } from './services/supabaseService.ts';
 import { parseRecipeFromUrl, scanRecipeFromImage } from './services/geminiService.ts';
 
 const SAMPLE_RECIPES: Recipe[] = [
@@ -184,12 +188,21 @@ const App: React.FC = () => {
   const [importMessage, setImportMessage] = useState('');
   const [importedRecipe, setImportedRecipe] = useState<Recipe | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
+  const [hiddenCategories, setHiddenCategories] = useState<string[]>([]);
 
   // App Settings State
   const [theme, setTheme] = useState<ThemeMode>(() => (localStorage.getItem('app_theme') as ThemeMode) || 'light');
-  const [accentColor, setAccentColor] = useState(() => localStorage.getItem('app_accent') || '#000000');
+  const [accentColor, setAccentColor] = useState(() => localStorage.getItem('app_accent') || '#bd715d');
   const [language, setLanguage] = useState(() => localStorage.getItem('app_lang') || 'pt-BR');
+  const [country, setCountry] = useState(() => localStorage.getItem('app_country') || 'BR');
   const [units, setUnits] = useState(() => localStorage.getItem('app_units') || 'metric');
+  const { t, i18n } = useTranslation();
+
+  useEffect(() => {
+    i18n.changeLanguage(language);
+  }, [language, i18n]);
 
   // User Profile State
   const [userProfile, setUserProfile] = useState({
@@ -221,19 +234,87 @@ const App: React.FC = () => {
     localStorage.setItem('app_accent', accentColor);
   }, [accentColor]);
 
-  // Sync Data
   useEffect(() => {
-    const loadData = async () => {
-      setIsSyncing(true);
-      const savedRecipes = localStorage.getItem('local_recipes');
-      setRecipes(savedRecipes ? JSON.parse(savedRecipes) : SAMPLE_RECIPES);
-      const savedProfile = localStorage.getItem('local_profile');
-      if (savedProfile) setUserProfile(JSON.parse(savedProfile));
-      setIsSyncing(false);
-    };
-    
-    loadData();
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) {
+        setIsGuest(false);
+        loadUserData(session);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) {
+        setIsGuest(false);
+        loadUserData(session);
+      } else {
+        setIsGuest(true);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  const loadUserData = async (currentSession: any) => {
+    if (!currentSession?.user) return;
+    const userId = currentSession.user.id;
+    
+    setIsSyncing(true);
+    try {
+      const [profile, userRecipes] = await Promise.all([
+        getUserProfile(userId),
+        fetchUserRecipes(userId)
+      ]);
+      
+      if (profile) {
+        setUserProfile({
+          name: profile.name || 'Meu Caderno',
+          email: currentSession.user.email || '',
+          username: profile.username || 'receitas',
+          birthDate: profile.birth_date || '',
+          gender: profile.gender || '',
+          location: profile.location || '',
+          photo: profile.photo_url || ''
+        });
+      } else {
+        // Fallback for new users
+        setUserProfile(prev => ({
+          ...prev,
+          email: currentSession.user.email || ''
+        }));
+      }
+      
+      if (userRecipes && userRecipes.length > 0) {
+        setRecipes(userRecipes);
+      }
+    } catch (err) {
+      console.error("Error loading user data:", err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Sync Data (Local fallback)
+  useEffect(() => {
+    if (isGuest) {
+      const loadData = async () => {
+        setIsSyncing(true);
+        const savedRecipes = localStorage.getItem('local_recipes');
+        setRecipes(savedRecipes ? JSON.parse(savedRecipes) : SAMPLE_RECIPES);
+        const savedProfile = localStorage.getItem('local_profile');
+        if (savedProfile) setUserProfile(JSON.parse(savedProfile));
+        const savedCategories = localStorage.getItem('custom_categories');
+        if (savedCategories) setCustomCategories(JSON.parse(savedCategories));
+        const savedHidden = localStorage.getItem('hidden_categories');
+        if (savedHidden) setHiddenCategories(JSON.parse(savedHidden));
+        setIsSyncing(false);
+      };
+      loadData();
+    }
+  }, [isGuest]);
 
   // Splash Screen Timer
   useEffect(() => {
@@ -249,48 +330,54 @@ const App: React.FC = () => {
     const r = recipes.find(r => r.id === recipeId);
     if (!r) return;
     const newStatus = !r.isFavorite;
-    setRecipes(prev => prev.map(recipe => recipe.id === recipeId ? { ...recipe, isFavorite: newStatus } : recipe));
+    
+    const updatedRecipes = recipes.map(recipe => recipe.id === recipeId ? { ...recipe, isFavorite: newStatus } : recipe);
+    setRecipes(updatedRecipes);
+    
+    if (selectedRecipe && selectedRecipe.id === recipeId) {
+      setSelectedRecipe({ ...selectedRecipe, isFavorite: newStatus });
+    }
     
     // Save locally
-    const updatedRecipes = recipes.map(recipe => recipe.id === recipeId ? { ...recipe, isFavorite: newStatus } : recipe);
     localStorage.setItem('local_recipes', JSON.stringify(updatedRecipes));
   };
 
   const handleImportUrl = async (url: string) => {
     setIsImporting(true);
-    setImportMessage('Analisando o link e extraindo ingredientes...');
+    setImportMessage(t('Analisando o link e extraindo ingredientes...'));
     try {
       const recipe = await parseRecipeFromUrl(url);
       if (recipe) {
         setImportedRecipe(recipe);
         setView('preview-url');
       } else {
-        alert("Não conseguimos extrair a receita. Tente colar o texto manualmente.");
+        alert(t("Não conseguimos extrair a receita. Tente colar o texto manualmente."));
       }
     } catch (err) {
       console.error(err);
-      alert("Erro ao importar. Verifique o link.");
+      alert(t("Erro ao importar. Verifique o link."));
     } finally {
       setIsImporting(false);
     }
   };
 
-  const handleProcessImage = async () => {
-    if (!capturedImage) return;
+  const handleProcessImage = async (rotatedImageUrl?: string) => {
+    const imgToProcess = rotatedImageUrl || capturedImage;
+    if (!imgToProcess) return;
     setIsImporting(true);
-    setImportMessage('Digitalizando a foto com inteligência artificial...');
+    setImportMessage(t('Digitalizando a foto com inteligência artificial...'));
     try {
-      const base64Data = capturedImage.split(',')[1];
+      const base64Data = imgToProcess.split(',')[1];
       const recipe = await scanRecipeFromImage(base64Data);
       if (recipe) {
-        setImportedRecipe({ ...recipe, imageUrl: capturedImage });
+        setImportedRecipe({ ...recipe, imageUrl: imgToProcess });
         setView('preview-url');
       } else {
-        alert("Não conseguimos ler a imagem. Tente uma foto mais nítida.");
+        alert(t("Não conseguimos ler a imagem. Tente uma foto mais nítida."));
       }
     } catch (err) {
       console.error(err);
-      alert("Erro ao processar imagem.");
+      alert(t("Erro ao processar imagem."));
     } finally {
       setIsImporting(false);
     }
@@ -313,11 +400,16 @@ const App: React.FC = () => {
       
       setRecipes(updatedList);
       localStorage.setItem('local_recipes', JSON.stringify(updatedList));
-      setView('book');
-      setSelectedRecipe(null);
+      
+      setToastMessage(t('Receita salva com sucesso!'));
+      setTimeout(() => {
+        setToastMessage(null);
+        setView('book');
+        setSelectedRecipe(null);
+      }, 1500);
     } catch (err) { 
       console.error(err);
-      alert("Erro ao salvar a receita.");
+      alert(t("Erro ao salvar a receita."));
     } finally {
       setIsSyncing(false);
     }
@@ -326,7 +418,45 @@ const App: React.FC = () => {
   const handleSaveProfile = async (data: any) => {
     setUserProfile(data);
     localStorage.setItem('local_profile', JSON.stringify(data));
-    setView('account');
+  };
+
+  const handleDeleteRecipe = (recipeId: string) => {
+    const updatedList = recipes.filter(r => r.id !== recipeId);
+    setRecipes(updatedList);
+    localStorage.setItem('local_recipes', JSON.stringify(updatedList));
+    setSelectedRecipe(null);
+    setView('book');
+  };
+
+  const handleAddCustomCategory = (label: string) => {
+    const newCategory: CustomCategory = {
+      id: label.toUpperCase().replace(/\s+/g, '_'),
+      label
+    };
+    const updatedCategories = [...customCategories, newCategory];
+    setCustomCategories(updatedCategories);
+    localStorage.setItem('custom_categories', JSON.stringify(updatedCategories));
+  };
+
+  const handleDeleteCategory = (id: string) => {
+    if (customCategories.some(c => c.id === id)) {
+      const updated = customCategories.filter(c => c.id !== id);
+      setCustomCategories(updated);
+      localStorage.setItem('custom_categories', JSON.stringify(updated));
+    } else {
+      const updated = [...hiddenCategories, id];
+      setHiddenCategories(updated);
+      localStorage.setItem('hidden_categories', JSON.stringify(updated));
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      console.error(err);
+      alert(t("Erro ao entrar com Google."));
+    }
   };
 
   const renderContent = () => {
@@ -337,13 +467,14 @@ const App: React.FC = () => {
           onBack={() => setSelectedRecipe(null)} 
           onToggleFavorite={() => handleToggleFavorite(selectedRecipe.id)} 
           onEdit={() => setView('edit-manual')} 
+          onDelete={() => handleDeleteRecipe(selectedRecipe.id)}
         />
       );
     }
 
     switch (view) {
       case 'home': return <HomeView recipes={recipes} onSelectRecipe={setSelectedRecipe} />;
-      case 'book': return <RecipeBookView recipes={recipes} onSelectRecipe={setSelectedRecipe} onToggleFavorite={handleToggleFavorite} />;
+      case 'book': return <RecipeBookView recipes={recipes} onSelectRecipe={setSelectedRecipe} onToggleFavorite={handleToggleFavorite} customCategories={customCategories} hiddenCategories={hiddenCategories} onAddCategory={handleAddCustomCategory} onDeleteCategory={handleDeleteCategory} />;
       case 'converter': return <ConverterView />;
       case 'account': return (
         <ProfileView 
@@ -359,26 +490,35 @@ const App: React.FC = () => {
           onUpdateProfile={() => {}} 
         />
       );
-      case 'add-manual': return <ManualRecipeView onSave={handleSaveRecipe} onBack={() => setView('home')} />;
+      case 'add-manual': return <ManualRecipeView onSave={handleSaveRecipe} onBack={() => setView('home')} customCategories={customCategories} />;
       case 'add-url': return <AddUrlView onConfirm={handleImportUrl} onBack={() => setView('home')} isLoading={isImporting} />;
       case 'scan': return <ScanView onBack={() => setView('home')} onImageCaptured={(img) => { setCapturedImage(img); setView('scan-preview'); }} />;
       case 'scan-preview': return capturedImage ? <ScanPreviewView imageUrl={capturedImage} onConfirm={handleProcessImage} onDiscard={() => { setCapturedImage(null); setView('scan'); }} onRetake={() => setView('scan')} /> : null;
-      case 'preview-url': return importedRecipe ? <ManualRecipeView initialRecipe={importedRecipe} onSave={handleSaveRecipe} onBack={() => setView('home')} isPreview /> : null;
-      case 'edit-manual': return selectedRecipe ? <ManualRecipeView initialRecipe={selectedRecipe} onSave={handleSaveRecipe} onBack={() => setView('home')} /> : null;
-      case 'account-details': return <AccountDetailsView initialData={userProfile} isLoggedIn={false} onSave={handleSaveProfile} onBack={() => setView('account')} onGoogleLogin={() => {}} onAppleLogin={() => {}} />;
-      case 'appearance': return <AppearanceView currentTheme={theme} onThemeChange={setTheme} currentColor={accentColor} onColorChange={setAccentColor} onBack={() => setView('account')} />;
-      case 'settings': return <SettingsView language={language} onLanguageChange={setLanguage} units={units} onUnitsChange={setUnits} onBack={() => setView('account')} />;
+      case 'preview-url': return importedRecipe ? <ManualRecipeView initialRecipe={importedRecipe} onSave={handleSaveRecipe} onBack={() => setView('home')} isPreview customCategories={customCategories} /> : null;
+      case 'edit-manual': return selectedRecipe ? <ManualRecipeView initialRecipe={selectedRecipe} onSave={handleSaveRecipe} onBack={() => setView('home')} customCategories={customCategories} /> : null;
+      case 'account-details': return <AccountDetailsView initialData={userProfile} isLoggedIn={true} onSave={handleSaveProfile} onBack={() => setView('account')} onGoogleLogin={handleGoogleLogin} onAppleLogin={() => {}} onEmailLogin={() => setView('auth-email')} onLogout={() => setView('account')} onDeleteAccount={() => setView('account')} />;
+      case 'auth-email': return (
+        <AuthView 
+          onLoginSuccess={() => setView('account')} 
+          onContinueAsGuest={() => setView('account')} 
+          onBack={() => setView('account-details')}
+        />
+      );
+      case 'appearance': return <AppearanceView currentTheme={theme} onThemeChange={setTheme} currentColor={accentColor} onColorChange={setAccentColor} onBack={() => setView('account')} onSave={() => {}} />;
+      case 'settings': return <SettingsView language={language} onLanguageChange={(l) => { setLanguage(l); localStorage.setItem('app_lang', l); }} units={units} onUnitsChange={(u) => { setUnits(u); localStorage.setItem('app_units', u); }} onBack={() => setView('account')} onSave={() => {}} />;
       default: return <HomeView recipes={recipes} onSelectRecipe={setSelectedRecipe} />;
     }
   };
 
   if (view === 'landing') {
     return (
-      <div className="fixed inset-0 bg-[#f7f7f7] flex flex-col items-center justify-center">
-        <div className="logo-cursive text-7xl text-black">cuore</div>
+      <div className="fixed inset-0 bg-[#f9f9f9] flex flex-col items-center justify-center animate-in fade-in duration-700">
+        <DoodleLogo size="lg" />
       </div>
     );
   }
+
+  const showBottomNav = !selectedRecipe && !['edit-manual', 'account-details', 'appearance', 'settings', 'add-url', 'preview-url', 'scan', 'scan-preview', 'auth-email'].includes(view);
 
   return (
     <div className="w-full min-h-screen bg-[#f7f7f7] dark:bg-[#0a0a0a] font-sans text-black dark:text-white overflow-x-hidden">
@@ -390,11 +530,11 @@ const App: React.FC = () => {
 
       {isImporting && <MagicLoading message={importMessage} />}
 
-      <main className={!selectedRecipe ? 'pb-16' : ''}>
+      <main className={showBottomNav ? 'pb-16' : ''}>
         {renderContent()}
       </main>
 
-      {!selectedRecipe && !['add-manual', 'edit-manual', 'account-details', 'appearance', 'settings', 'add-url', 'preview-url', 'scan', 'scan-preview'].includes(view) && (
+      {showBottomNav && (
         <nav className="fixed bottom-0 left-0 w-full bg-white dark:bg-[#121212] h-14 flex items-center justify-around z-40 px-2 border-t border-gray-100 dark:border-white/5">
           <TabButton icon={<House />} active={view === 'home'} onClick={() => setView('home')} />
           <TabButton icon={<ClipboardList />} active={view === 'book'} onClick={() => setView('book')} />
@@ -414,6 +554,15 @@ const App: React.FC = () => {
             if (method === 'SCAN') setView('scan');
           }} 
         />
+      )}
+
+      {toastMessage && (
+        <div className="fixed inset-0 flex items-center justify-center z-[200] pointer-events-none">
+          <div className="bg-black dark:bg-white text-white dark:text-black px-6 py-3 rounded-full shadow-xl animate-in fade-in zoom-in duration-300 flex items-center gap-2">
+            <CheckCircle2 size={18} className="text-brand-secondary" />
+            <span className="font-mooli text-[13px] font-normal">{toastMessage}</span>
+          </div>
+        </div>
       )}
     </div>
   );

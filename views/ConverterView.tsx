@@ -84,8 +84,8 @@ export const ConverterView: React.FC = () => {
 
   return (
     <div className="bg-[#f2f2f2] dark:bg-[#0a0a0a] min-h-screen pb-32 animate-in fade-in duration-500 overflow-x-hidden">
-      <header className="pt-20 pb-14 px-6 flex flex-col items-center text-center">
-        <h2 className="font-amatic font-bold text-[42px] uppercase tracking-tight text-black dark:text-white leading-none">
+      <header className="pt-12 pb-8 px-6 flex flex-col items-center text-center">
+        <h2 className="font-amatic font-bold text-[40px] uppercase tracking-tight text-black dark:text-white leading-none text-center">
           Conversão de Medidas
         </h2>
       </header>

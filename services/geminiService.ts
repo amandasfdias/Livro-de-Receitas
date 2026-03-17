@@ -30,25 +30,25 @@ export const parseRecipeFromUrl = async (url: string): Promise<Recipe | null> =>
   try {
     const isSocial = url.includes('instagram.com') || url.includes('tiktok.com') || url.includes('facebook.com') || url.includes('youtube.com') || url.includes('youtu.be');
     
-    // Usamos o Pro para tarefas complexas de extração de texto
+    // Usamos o Flash para maior velocidade na extração
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: `Você é um especialista em culinária e mestre em extração de dados. 
-      Analise o link: ${url}.
+      model: 'gemini-3-flash-preview',
+      contents: `Você é um especialista em culinária e extração rápida de dados. 
+      Analise o conteúdo do link: ${url}.
 
-      OBJETIVO: Extrair a receita COMPLETA.
+      OBJETIVO: Extrair a receita COMPLETA o mais rápido possível.
 
       LOGICA DE BUSCA:
-      1. Se o link for de REDE SOCIAL (Instagram, TikTok, YT) e a receita não estiver óbvia na legenda, USE O GOOGLE SEARCH para encontrar o blog oficial do autor ou transcrições dessa receita específica.
-      2. IGNORE "HISTÓRIAS" DE BLOGS: Muitas páginas têm textos longos antes da receita. Salte direto para a lista de ingredientes e instruções.
-      3. TRADUÇÃO: Se a fonte for estrangeira, traduza fielmente para Português (Brasil).
-      4. NORMALIZAÇÃO: Se faltar tempo de preparo ou porções no texto original, use sua base de conhecimento para ESTIMAR valores realistas baseados na complexidade da receita encontrada.
+      1. Leia o conteúdo do link fornecido. Se for uma rede social e a receita não estiver na legenda, use a busca para encontrar a receita.
+      2. IGNORE "HISTÓRIAS" DE BLOGS: Salte direto para a lista de ingredientes e instruções.
+      3. TRADUÇÃO: Se a fonte for estrangeira, traduza para Português (Brasil).
+      4. NORMALIZAÇÃO: Se faltar tempo de preparo ou porções, estime valores realistas.
       
       RETORNO: Apenas o JSON puro seguindo o esquema definido.`,
       config: {
         responseMimeType: 'application/json',
         responseSchema: RECIPE_SCHEMA,
-        tools: [{ googleSearch: {} }] 
+        tools: [{ urlContext: {} }, { googleSearch: {} }] 
       }
     });
 
@@ -71,7 +71,7 @@ export const parseRecipeFromUrl = async (url: string): Promise<Recipe | null> =>
 export const scanRecipeFromImage = async (base64Image: string): Promise<Recipe | null> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.1-pro-preview',
       contents: {
         parts: [
           { text: "Transcreva fielmente esta receita da imagem para JSON. Traduza para Português se necessário." },

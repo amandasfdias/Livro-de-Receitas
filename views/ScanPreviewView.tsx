@@ -1,14 +1,44 @@
-import React from 'react';
-import { Check, X, Camera, RefreshCw, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, X, Camera, RefreshCw, AlertCircle, RotateCcw, RotateCw } from 'lucide-react';
 
 interface ScanPreviewViewProps {
   imageUrl: string;
-  onConfirm: () => void;
+  onConfirm: (rotatedImageUrl?: string) => void;
   onDiscard: () => void;
   onRetake: () => void;
 }
 
 export const ScanPreviewView: React.FC<ScanPreviewViewProps> = ({ imageUrl, onConfirm, onDiscard, onRetake }) => {
+  const [rotation, setRotation] = useState(0);
+
+  const handleRotateLeft = () => setRotation(r => r - 90);
+  const handleRotateRight = () => setRotation(r => r + 90);
+
+  const handleConfirm = () => {
+    if (rotation % 360 === 0) {
+      onConfirm();
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return onConfirm();
+
+      const isLandscape = (rotation / 90) % 2 !== 0;
+      canvas.width = isLandscape ? img.height : img.width;
+      canvas.height = isLandscape ? img.width : img.height;
+
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((rotation * Math.PI) / 180);
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+      const rotatedImageUrl = canvas.toDataURL('image/jpeg');
+      onConfirm(rotatedImageUrl);
+    };
+    img.src = imageUrl;
+  };
   return (
     <div className="fixed inset-0 bg-white dark:bg-[#121212] z-[60] flex flex-col animate-in fade-in duration-300">
       <header className="pt-12 pb-8 px-6 text-center relative sticky top-0 bg-white dark:bg-[#121212] z-10">
@@ -31,8 +61,13 @@ export const ScanPreviewView: React.FC<ScanPreviewViewProps> = ({ imageUrl, onCo
 
       <div className="flex-1 p-6 flex flex-col items-center bg-[#F1EDE4] dark:bg-white/5 overflow-y-auto">
         {/* Camera-like Viewfinder Container */}
-        <div className="relative w-full max-w-sm aspect-[3/4] bg-white dark:bg-[#1e1e1e] rounded-md overflow-hidden border-4 border-white dark:border-white/10 group">
-          <img src={imageUrl} alt="Scan preview" className="w-full h-full object-cover" />
+        <div className="relative w-full max-w-sm aspect-[3/4] bg-white dark:bg-[#1e1e1e] rounded-md overflow-hidden border-4 border-white dark:border-white/10 group flex items-center justify-center">
+          <img 
+            src={imageUrl} 
+            alt="Scan preview" 
+            className="w-full h-full object-cover transition-transform duration-300"
+            style={{ transform: `rotate(${rotation}deg)` }}
+          />
           
           {/* Viewfinder corners */}
           <div className="absolute top-6 left-6 w-8 h-8 border-t-2 border-l-2 border-white/80 rounded-tl-sm" />
@@ -46,10 +81,27 @@ export const ScanPreviewView: React.FC<ScanPreviewViewProps> = ({ imageUrl, onCo
           <div className="absolute top-0 left-0 w-full h-[1px] bg-brand-secondary shadow-[0_0_15px_var(--brand-secondary)] animate-[scan_4s_ease-in-out_infinite] opacity-60" />
         </div>
         
-        {/* Quality Checklist */}
+        {/* Quality Checklist and Rotation Controls */}
         <div className="mt-8 w-full max-w-sm space-y-4">
+          <div className="flex justify-center gap-6 mb-2">
+            <button 
+              onClick={handleRotateLeft}
+              className="p-3 bg-white dark:bg-white/10 rounded-full shadow-sm border border-gray-100 dark:border-white/5 text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white active:scale-95 transition-all"
+              aria-label="Girar para a esquerda"
+            >
+              <RotateCcw size={20} />
+            </button>
+            <button 
+              onClick={handleRotateRight}
+              className="p-3 bg-white dark:bg-white/10 rounded-full shadow-sm border border-gray-100 dark:border-white/5 text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white active:scale-95 transition-all"
+              aria-label="Girar para a direita"
+            >
+              <RotateCw size={20} />
+            </button>
+          </div>
+
           <div className="bg-white/50 dark:bg-white/5 p-5 rounded-md border border-white/50 dark:border-white/5">
-            <h4 className="font-inter text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mb-3 flex items-center gap-2">
+            <h4 className="font-rubik text-[10px] font-medium uppercase tracking-[0.2em] text-gray-400 mb-3 flex items-center gap-2">
               <AlertCircle size={12} /> Checklist de Qualidade
             </h4>
             <ul className="space-y-2">
@@ -84,7 +136,7 @@ export const ScanPreviewView: React.FC<ScanPreviewViewProps> = ({ imageUrl, onCo
         </button>
         
         <button 
-          onClick={onConfirm}
+          onClick={handleConfirm}
           className="flex-1 bg-black dark:bg-brand-secondary text-white py-4 flex items-center justify-center gap-2 rounded-md active:scale-95 transition-all border-none"
         >
           <Check size={18} />

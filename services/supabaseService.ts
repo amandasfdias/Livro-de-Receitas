@@ -2,24 +2,32 @@
 import { createClient } from '@supabase/supabase-js';
 import { Recipe } from '../types';
 
-const supabaseUrl = process.env.SUPABASE_URL || 'https://nodngrbhschbkgwjmrfx.supabase.co';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'sb_publishable_PlQfNhZinhSQn0560SBGRQ_OukA-CCH';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Método centralizado para Login com Google
 export const signInWithGoogle = async () => {
-  const { error } = await supabase.auth.signInWithOAuth({
+  const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
       redirectTo: window.location.origin,
+      skipBrowserRedirect: true,
       queryParams: {
         access_type: 'offline',
         prompt: 'select_account',
       },
     },
   });
+  
   if (error) throw error;
+  
+  if (data?.url) {
+    window.open(data.url, '_blank');
+  }
+  
+  return data;
 };
 
 // Helper para converter dados do banco (snake_case) para o app (camelCase)

@@ -30,13 +30,13 @@ export const TabButton: React.FC<TabButtonProps> = ({ icon, active, onClick, spe
       onClick={onClick}
       className={`
         flex flex-col items-center justify-center w-[20%] h-full transition-all
-        ${active ? 'text-black dark:text-white scale-105 font-bold' : 'text-black opacity-40 hover:opacity-60 dark:text-white dark:opacity-40'}
+        ${active ? 'text-black dark:text-white scale-105' : 'text-black opacity-40 hover:opacity-60 dark:text-white dark:opacity-40'}
       `}
     >
       <div className="flex items-center justify-center">
         {React.cloneElement(icon as React.ReactElement, { 
           size: 22,
-          strokeWidth: active ? 2.5 : 1.5
+          strokeWidth: 1.5
         })}
       </div>
     </button>

@@ -1,36 +1,59 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Save, X, ImagePlus, Check, Edit3, Sparkles } from 'lucide-react';
-import { Recipe } from '../types';
+import { ArrowLeft, Save, X, ImagePlus, Check, Edit3, Sparkles, ChevronDown } from 'lucide-react';
+import { Recipe, CustomCategory } from '../types';
 
 interface ManualRecipeViewProps {
   initialRecipe?: Recipe;
   onSave: (recipe: Omit<Recipe, 'id'>) => void;
   onBack: () => void;
   isPreview?: boolean;
+  customCategories?: CustomCategory[];
 }
 
-export const ManualRecipeView: React.FC<ManualRecipeViewProps> = ({ initialRecipe, onSave, onBack, isPreview }) => {
+const CATEGORIES = [
+  { id: 'SALGADO', label: 'Salgado' },
+  { id: 'DOCE', label: 'Doce' },
+  { id: 'BEBIDA', label: 'Bebida' },
+  { id: 'FIT', label: 'Fit' },
+  { id: 'PADARIA', label: 'Padaria' },
+  { id: 'OUTROS', label: 'Outros' }
+];
+
+export const ManualRecipeView: React.FC<ManualRecipeViewProps> = ({ initialRecipe, onSave, onBack, isPreview, customCategories = [] }) => {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
-  const [prepTime, setPrepTime] = useState('');
-  const [cookTime, setCookTime] = useState('');
-  const [servings, setServings] = useState('');
   const [ingredients, setIngredients] = useState('');
   const [instructions, setInstructions] = useState('');
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [errors, setErrors] = useState<{title?: boolean, ingredients?: boolean, instructions?: boolean}>({});
   const [hasAttemptedSave, setHasAttemptedSave] = useState(false);
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+
+  const allCategories = [
+    ...CATEGORIES.filter(c => c.id !== 'OUTROS'),
+    ...customCategories,
+    { id: 'OUTROS', label: 'Outros' }
+  ];
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+        setIsCategoryDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (initialRecipe) {
       setTitle(initialRecipe.title || '');
       setCategory(initialRecipe.category || '');
-      setPrepTime(initialRecipe.prepTime || '');
-      setCookTime(initialRecipe.cookTime || '');
-      setServings(initialRecipe.servings || '');
       setIngredients(Array.isArray(initialRecipe.ingredients) ? initialRecipe.ingredients.join('\n') : '');
       setInstructions(Array.isArray(initialRecipe.instructions) ? initialRecipe.instructions.join('\n') : '');
       setImageUrl(initialRecipe.imageUrl);
@@ -60,113 +83,111 @@ export const ManualRecipeView: React.FC<ManualRecipeViewProps> = ({ initialRecip
     }
     const ingredientList = ingredients.split('\n').filter(i => i.trim() !== '');
     const instructionList = instructions.split('\n').filter(i => i.trim() !== '');
-    onSave({ title: title.toUpperCase(), category: category.toUpperCase() || 'GERAL', prepTime, cookTime, servings, ingredients: ingredientList, instructions: instructionList, imageUrl });
+    onSave({ title: title.toUpperCase(), category: category.toUpperCase() || 'GERAL', ingredients: ingredientList, instructions: instructionList, imageUrl });
   };
 
-  const labelClass = "block text-[11px] font-inter text-gray-400 mb-3 uppercase tracking-[0.18em] font-bold";
-  const inputBaseClass = "w-full bg-[#fcfcfc] dark:bg-black/20 border border-gray-100 dark:border-white/5 p-4.5 text-[14px] font-inter focus:border-black dark:focus:border-white/30 outline-none rounded-md transition-all text-black dark:text-white shadow-sm";
+  const labelClass = "block text-[10px] font-rubik font-medium uppercase tracking-[0.2em] text-gray-400 mb-4";
+  const inputBaseClass = "w-full bg-[#f7f7f7] dark:bg-white/5 py-4 px-4 text-[14px] font-mooli font-normal rounded-md outline-none border border-transparent focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-black dark:text-white placeholder:text-gray-400";
 
   return (
-    <div className="min-h-screen bg-[#f7f7f7] dark:bg-[#0a0a0a] animate-in fade-in duration-500 flex flex-col">
-      <header className="pt-16 pb-12 px-6 text-center relative sticky top-0 bg-[#f7f7f7] dark:bg-[#0a0a0a] z-30">
-        <button onClick={onBack} className="absolute left-6 top-1/2 -translate-y-1/2 p-2 -ml-2 text-black dark:text-white active:scale-90 transition-transform">
+    <div className="min-h-screen bg-white dark:bg-[#121212] animate-in fade-in duration-500 flex flex-col">
+      <header className="pt-12 pb-6 px-6 flex items-center justify-between sticky top-0 bg-white dark:bg-[#121212] z-10">
+        <button onClick={onBack} className="p-2 -ml-2 hover:bg-gray-50 dark:hover:bg-white/5 rounded-md transition-colors text-black dark:text-white active:scale-90 z-10">
           <ArrowLeft size={22} />
         </button>
-        <h2 className="font-amatic font-bold text-[34px] uppercase tracking-tight text-black dark:text-white leading-none">
-          {isPreview ? 'Revisar' : initialRecipe ? 'Editar' : 'Nova Receita'}
+        <h2 className="font-amatic font-bold text-[30px] uppercase tracking-tight text-black dark:text-white leading-none absolute left-1/2 -translate-x-1/2 mt-1">
+          {initialRecipe ? 'Editar Receita' : 'Adicionar Receita'}
         </h2>
-        {isPreview && <Sparkles size={20} className="absolute right-6 top-1/2 -translate-y-1/2 text-brand-secondary" />}
+        <button 
+          onClick={handleSave} 
+          className="p-2 -mr-2 text-brand-secondary active:scale-90 transition-transform z-10"
+        >
+          <Check size={26} strokeWidth={2.5} />
+        </button>
       </header>
 
-      <div className="flex-1 flex flex-col">
-        {/* Área da Imagem com mais respiro */}
-        <div className="px-8 mb-12">
-          <div className="relative group">
-            {imageUrl ? (
-              <div className="relative w-full aspect-[4/5] bg-white dark:bg-white/5 rounded-2xl overflow-hidden border border-gray-100 dark:border-white/5 shadow-sm">
-                <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
-                <button onClick={removeImage} className="absolute top-4 right-4 w-9 h-9 bg-black/80 text-white rounded-full flex items-center justify-center backdrop-blur-md active:scale-90 transition-transform shadow-lg"><X size={18} /></button>
-              </div>
-            ) : (
-              <button onClick={() => fileInputRef.current?.click()} className="w-full aspect-[4/5] border border-dashed border-gray-200 dark:border-white/10 rounded-2xl flex flex-col items-center justify-center gap-3 text-gray-400 hover:border-black dark:hover:border-white transition-all bg-white dark:bg-white/5 shadow-inner">
-                <ImagePlus size={32} strokeWidth={1.5} />
-                <span className="text-[12px] font-bold uppercase tracking-[0.2em]">Adicionar Foto</span>
-              </button>
-            )}
-            <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
-          </div>
+      <div className="flex-1 px-6 space-y-8 max-w-md mx-auto w-full pb-24">
+
+        <div>
+          <label className={labelClass}>Título da Receita</label>
+          <input 
+            type="text" 
+            value={title} 
+            onChange={(e) => setTitle(e.target.value)} 
+            placeholder="Ex: Bolo de Chocolate"
+            className={`${inputBaseClass} ${errors.title ? 'ring-2 ring-red-500' : ''}`} 
+          />
         </div>
 
-        {/* Container Branco (Sheet) para os Inputs - Espaçamento vertical ampliado para formato retrato */}
-        <div className="flex-1 bg-white dark:bg-[#121212] rounded-t-[50px] px-8 pt-20 pb-72 shadow-[0_-12px_40px_rgb(0,0,0,0.03)] dark:shadow-none border-t border-gray-50 dark:border-white/5">
-          <div className="max-w-md mx-auto space-y-12">
-            <div className="space-y-10">
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-                <label className={labelClass}>Título da Receita *</label>
-                <input 
-                  type="text" 
-                  value={title} 
-                  onChange={(e) => setTitle(e.target.value)} 
-                  placeholder="Ex: Bolo de Chocolate Belga"
-                  className={`${inputBaseClass} ${errors.title ? 'border-red-500 bg-red-50/10' : ''}`} 
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
-                <div>
-                  <label className={labelClass}>Categoria</label>
-                  <input 
-                    type="text" 
-                    value={category} 
-                    onChange={(e) => setCategory(e.target.value)} 
-                    placeholder="Doces"
-                    className={inputBaseClass} 
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Rendimento</label>
-                  <input 
-                    type="text" 
-                    value={servings} 
-                    onChange={(e) => setServings(e.target.value)} 
-                    placeholder="12 fatias"
-                    className={inputBaseClass} 
-                  />
-                </div>
-              </div>
-
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
-                <label className={labelClass}>Ingredientes *</label>
-                <textarea 
-                  value={ingredients} 
-                  onChange={(e) => setIngredients(e.target.value)} 
-                  rows={8} 
-                  placeholder="Liste um ingrediente por linha"
-                  className={`${inputBaseClass} ${errors.ingredients ? 'border-red-500 bg-red-50/10' : ''} resize-none min-h-[200px] leading-relaxed`} 
-                />
-              </div>
-
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-250">
-                <label className={labelClass}>Modo de Preparo *</label>
-                <textarea 
-                  value={instructions} 
-                  onChange={(e) => setInstructions(e.target.value)} 
-                  rows={10} 
-                  placeholder="Descreva o passo a passo..."
-                  className={`${inputBaseClass} ${errors.instructions ? 'border-red-500 bg-red-50/10' : ''} resize-none min-h-[250px] leading-relaxed`} 
-                />
+        <div>
+          <label className={labelClass}>Categoria</label>
+          <div className="relative" ref={categoryDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+              className={`${inputBaseClass} flex items-center justify-between text-left`}
+            >
+              <span className={category ? 'text-black dark:text-white' : 'text-gray-400'}>
+                {category ? allCategories.find(c => c.id === category)?.label || category : 'Selecione uma categoria'}
+              </span>
+              <ChevronDown 
+                className={`text-gray-400 transition-transform duration-300 ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} 
+                size={20} 
+              />
+            </button>
+            
+            <div 
+              className={`absolute z-20 w-full mt-2 bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-white/10 rounded-xl shadow-lg overflow-hidden transition-all duration-300 origin-top ${
+                isCategoryDropdownOpen 
+                  ? 'opacity-100 scale-y-100 translate-y-0' 
+                  : 'opacity-0 scale-y-95 -translate-y-2 pointer-events-none'
+              }`}
+            >
+              <div className="py-2 max-h-60 overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-600 [&::-webkit-scrollbar-thumb]:rounded-full flex flex-col">
+                {allCategories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => {
+                      setCategory(cat.id);
+                      setIsCategoryDropdownOpen(false);
+                    }}
+                    className={`px-4 py-3 text-left text-[14px] font-mooli transition-colors hover:bg-[#f7f7f7] dark:hover:bg-white/5 ${
+                      category === cat.id 
+                        ? 'text-black dark:text-white font-bold bg-[#f7f7f7] dark:bg-white/5' 
+                        : 'text-gray-600 dark:text-gray-400'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Rodapé Fixo com Botão de Ação */}
-      <div className="fixed bottom-0 left-0 w-full p-8 bg-white/80 dark:bg-[#121212]/80 backdrop-blur-xl border-t border-gray-50 dark:border-white/5 z-40">
-        <button onClick={handleSave} className="w-full bg-black dark:bg-white text-white dark:text-black py-5 flex items-center justify-center gap-3 rounded-2xl active:scale-[0.98] transition-all shadow-xl hover:shadow-2xl">
-          <Check size={22} strokeWidth={2.5} />
-          <span className="font-amatic text-[26px] font-bold tracking-widest uppercase">Salvar no Caderno</span>
-        </button>
+        <div>
+          <label className={labelClass}>Ingredientes</label>
+          <textarea 
+            value={ingredients} 
+            onChange={(e) => setIngredients(e.target.value)} 
+            rows={5} 
+            placeholder="Liste os ingredientes, um por linha"
+            className={`${inputBaseClass} ${errors.ingredients ? 'ring-2 ring-red-500' : ''} resize-none`} 
+          />
+        </div>
+
+        <div>
+          <label className={labelClass}>Instruções</label>
+          <textarea 
+            value={instructions} 
+            onChange={(e) => setInstructions(e.target.value)} 
+            rows={5} 
+            placeholder="Descreva o passo a passo"
+            className={`${inputBaseClass} ${errors.instructions ? 'ring-2 ring-red-500' : ''} resize-none`} 
+          />
+        </div>
+
       </div>
     </div>
   );
