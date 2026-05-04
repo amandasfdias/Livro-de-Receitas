@@ -1,0 +1,8 @@
+{
+  "name": "The Recipes Lab",
+  "description": "Suas receitas em um só lugar",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": []
+}
