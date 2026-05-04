@@ -1,12 +1,27 @@
 import { createClient } from '@supabase/supabase-js';
 import { Recipe, Checkout } from '../types';
 
-const rawUrl = import.meta.env.VITE_SUPABASE_URL || '';
-// Normalize URL: remove trailing slashes and common API paths if present
-const supabaseUrl = rawUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const DEFAULT_SUPABASE_URL = 'https://glixtwldetymduwhoybc.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_YnaXQEdHU8wo_gHHs7-24g_epEO0Ifv';
 
-export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('nodngrbhschbkgwjmrfx'));
+const rawUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+// Normalize URL: remove trailing slashes and common API paths if present
+let supabaseUrl = rawUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
+
+// Fix invalid URLs from env variables
+if (!supabaseUrl.startsWith('http://') && !supabaseUrl.startsWith('https://')) {
+  console.warn('Invalid VITE_SUPABASE_URL provided, falling back to default.');
+  supabaseUrl = DEFAULT_SUPABASE_URL;
+}
+
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || DEFAULT_SUPABASE_ANON_KEY;
+
+export const isSupabaseConfigured = !!(
+  supabaseUrl && 
+  supabaseAnonKey && 
+  !supabaseUrl.includes('nodngrbhschbkgwjmrfx') &&
+  !supabaseUrl.includes('YOUR_SUPABASE_URL')
+);
 
 export const supabase = createClient(
   isSupabaseConfigured ? supabaseUrl : 'https://placeholder.supabase.co', 

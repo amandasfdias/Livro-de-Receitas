@@ -21,6 +21,7 @@ interface ProfileViewProps {
   onNavigateToSettings: () => void;
   onNavigateToCategories: () => void;
   onNavigateToPrivacy: () => void;
+  onNavigateToTerms: () => void;
   onLogout: () => void;
 }
 
@@ -59,6 +60,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onNavigateToSettings,
   onNavigateToCategories,
   onNavigateToPrivacy,
+  onNavigateToTerms,
   onLogout
 }) => {
   const { t } = useTranslation();
@@ -132,7 +134,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <MenuItem 
             icon={<FileText />} 
             label={t("Termos e Condições")} 
-            onClick={() => {}} 
+            onClick={onNavigateToTerms} 
           />
           <MenuItem 
             icon={<Info />} 

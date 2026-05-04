@@ -810,6 +810,7 @@ const App: React.FC = () => {
           onNavigateToSettings={() => setView('settings')} 
           onNavigateToCategories={() => setView('categories')}
           onNavigateToPrivacy={() => setView('privacy')}
+          onNavigateToTerms={() => setView('terms-of-service')}
           onLogout={async () => {
             await signOut();
             setView('home');
@@ -839,7 +840,7 @@ const App: React.FC = () => {
       case 'appearance': return <AppearanceView currentTheme={theme} onThemeChange={setTheme} currentColor={accentColor} onColorChange={setAccentColor} keepScreenOn={keepScreenOn} onKeepScreenOnChange={(v) => { setKeepScreenOn(v); localStorage.setItem('keep_screen_on', v.toString()); }} categoryFontSize={categoryFontSize} onCategoryFontSizeChange={(v) => { setCategoryFontSize(v); localStorage.setItem('category_font_size', v.toString()); }} onBack={() => setView('account')} onSave={() => {}} />;
       case 'settings': return <SettingsView language={language} onLanguageChange={(l) => { setLanguage(l); localStorage.setItem('app_lang', l); i18n.changeLanguage(l); }} units={units} onUnitsChange={(u) => { setUnits(u); localStorage.setItem('app_units', u); }} showMainCategories={showMainCategories} onShowMainCategoriesChange={(v) => { setShowMainCategories(v); localStorage.setItem('show_main_categories', v.toString()); }} showSecondaryCategories={showSecondaryCategories} onShowSecondaryCategoriesChange={(v) => { setShowSecondaryCategories(v); localStorage.setItem('show_secondary_categories', v.toString()); }} hideRecipeMetadata={hideRecipeMetadata} onHideRecipeMetadataChange={(v) => { setHideRecipeMetadata(v); localStorage.setItem('hide_recipe_metadata', v.toString()); }} hideRecipeCount={hideRecipeCount} onHideRecipeCountChange={(v) => { setHideRecipeCount(v); localStorage.setItem('hide_recipe_count', v.toString()); }} usePhotosForCategories={usePhotosForCategories} onUsePhotosForCategoriesChange={(v) => { setUsePhotosForCategories(v); localStorage.setItem('use_photos_for_categories', v.toString()); }} onBack={() => setView('account')} onSave={() => {}} />;
       case 'privacy': return <PrivacyPolicyView onBack={() => setView('auth-email')} />;
-      case 'terms-of-service': return <TermsOfServiceView onBack={() => setView('auth-email')} />;
+      case 'terms-of-service': return <TermsOfServiceView onBack={() => setView(viewRef.current === 'account' ? 'account' : 'auth-email')} />;
       default: return <HomeView recipes={recipes} onSelectRecipe={setSelectedRecipe} />;
     }
   };
