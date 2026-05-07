@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { Recipe, Checkout } from '../types';
 
-const DEFAULT_SUPABASE_URL = 'https://glixtwldetymduwhoybc.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_YnaXQEdHU8wo_gHHs7-24g_epEO0Ifv';
+const DEFAULT_SUPABASE_URL = 'https://kenzguhtinkgumhrtnjy.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlbnpndWh0aW5rZ3VtaHJ0bmp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MjI0NDQsImV4cCI6MjA5MzQ5ODQ0NH0.xGF2piAG0-5hQVZcrp_8jkMTOw_dXO3hK1n9B8P0BOw';
 
 const rawUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL;
 // Normalize URL: remove trailing slashes and common API paths if present
