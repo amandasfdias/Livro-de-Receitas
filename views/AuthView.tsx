@@ -2,7 +2,7 @@
 import React, { useState, useTransition } from 'react';
 import { Loader2, AlertCircle, Check, X, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { signInWithGoogle, supabase } from '../services/supabaseService';
+import { signInWithGoogle, signInWithFacebook, signInWithSpotify, supabase } from '../services/supabaseService';
 
 interface AuthViewProps {
   onLoginSuccess: () => void;
@@ -84,6 +84,22 @@ export const AuthView: React.FC<AuthViewProps> = ({
     }
   };
 
+  const handleFacebookLogin = async () => {
+    try {
+      await signInWithFacebook();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao entrar com Facebook.");
+    }
+  };
+
+  const handleSpotifyLogin = async () => {
+    try {
+      await signInWithSpotify();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao entrar com Spotify.");
+    }
+  };
+
   const labelClass = "block text-[10px] font-rubik font-medium uppercase tracking-[0.2em] text-gray-400 mb-1.5";
   const inputClass = "w-full bg-[#f2f2f2] dark:bg-white/5 py-3 px-4 text-[14px] font-mooli font-normal rounded-md outline-none border border-transparent focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-black dark:text-white placeholder:text-gray-400";
   const providerButtonClass = "w-full flex items-center justify-center gap-3 py-2.5 border-2 border-gray-200 dark:border-white/10 rounded-md hover:bg-gray-50 dark:hover:bg-white/5 focus:bg-[#f7f7f7] dark:focus:bg-white/5 transition-all active:scale-95 focus:outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white";
@@ -140,6 +156,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
 
           <div className="space-y-4">
             <button 
+              type="button"
               onClick={handleGoogleLogin}
               className={providerButtonClass}
             >
@@ -150,6 +167,28 @@ export const AuthView: React.FC<AuthViewProps> = ({
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
               </svg>
               <span className="font-mooli text-black dark:text-white">Entrar com Google</span>
+            </button>
+            
+            <button 
+              type="button"
+              onClick={handleFacebookLogin}
+              className={providerButtonClass}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-[#1877F2]">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+              <span className="font-mooli text-black dark:text-white">Entrar com Facebook</span>
+            </button>
+
+            <button 
+              type="button"
+              onClick={handleSpotifyLogin}
+              className={providerButtonClass}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-[#1DB954]">
+                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.84.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.6.18-1.2.72-1.381 4.26-1.261 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+              </svg>
+              <span className="font-mooli text-black dark:text-white">Entrar com Spotify</span>
             </button>
 
             <div className="relative flex items-center gap-3 py-2">
